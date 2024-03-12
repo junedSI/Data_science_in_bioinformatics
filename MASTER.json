@@ -1,0 +1,177 @@
+{
+    "name": "pluto_master",
+    "objectId": "cdc3379d-0518-4b6a-bb37-cf69e7a10a7b",
+    "properties": {
+        "activities": [
+            {
+                "name": "start_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "input_info": "START_LOG",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "mysql_to_lakehouse",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "prepare_config",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "ed73380f-1707-424e-a917-ef7dee8b8e99",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": "SQL",
+                        "template_guid": "4F63CC81-2563-4C36-BA43-C488B07146B1"
+                    }
+                }
+            },
+            {
+                "name": "end_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "mysql_to_lakehouse",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "END_LOG",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "prepare_config",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "start_log",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "storedProcedureName": {
+                        "value": "[dbo].[prepare_config]",
+                        "type": "Expression"
+                    },
+                    "storedProcedureParameters": {
+                        "object_group_name": {
+                            "value": "morning",
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedService": {
+                    "name": "pluto_warehouse",
+                    "objectId": "ed9708e6-8b0e-4e85-a9cb-fbaf55a32396",
+                    "properties": {
+                        "annotations": [],
+                        "type": "DataWarehouse",
+                        "typeProperties": {
+                            "endpoint": "ohk6lkhiim6ezfv6gravnt3iq4-ig23trruww5everbdqg5uuuewq.datawarehouse.fabric.microsoft.com",
+                            "artifactId": "ed9708e6-8b0e-4e85-a9cb-fbaf55a32396"
+                        },
+                        "tridentArtifactType": "DataWarehouse"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "config_db": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "lastModifiedByObjectId": "f5ae6ea8-d867-4949-bdc1-e8a981b15f28",
+        "lastPublishTime": "2024-03-08T08:54:10Z"
+    }
+}

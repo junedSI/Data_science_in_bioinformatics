@@ -1,0 +1,392 @@
+{
+    "name": "worker_mysql_lakehouse",
+    "objectId": "97b508b9-04a1-4581-b799-ffcfdde35585",
+    "properties": {
+        "activities": [
+            {
+                "name": "worker_start_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "WORKER_START_LOG",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Copy data1",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "worker_start_log",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "DataWarehouseSource",
+                        "sqlReaderQuery": {
+                            "value": "@pipeline().parameters.input_json.source_query",
+                            "type": "Expression"
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None",
+                        "datasetSettings": {
+                            "annotations": [],
+                            "linkedService": {
+                                "name": "pluto_warehouse",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "DataWarehouse",
+                                    "typeProperties": {
+                                        "endpoint": "ohk6lkhiim6ezfv6gravnt3iq4-ig23trruww5everbdqg5uuuewq.datawarehouse.fabric.microsoft.com",
+                                        "artifactId": "ed9708e6-8b0e-4e85-a9cb-fbaf55a32396"
+                                    }
+                                }
+                            },
+                            "type": "DataWarehouseTable",
+                            "schema": []
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "LakehouseWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextWriteSettings",
+                            "quoteAllText": true,
+                            "fileExtension": ".txt"
+                        },
+                        "datasetSettings": {
+                            "annotations": [],
+                            "linkedService": {
+                                "name": "J_test_lakehouse",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "Lakehouse",
+                                    "typeProperties": {
+                                        "workspaceId": "c6b9b541-b534-4aba-9221-1c0dda5284b4",
+                                        "artifactId": "8921edf4-83bb-4cf8-b43f-cf66592e7cf9",
+                                        "rootFolder": "Files"
+                                    }
+                                }
+                            },
+                            "type": "DelimitedText",
+                            "typeProperties": {
+                                "location": {
+                                    "type": "LakehouseLocation"
+                                },
+                                "columnDelimiter": ",",
+                                "escapeChar": "\\",
+                                "firstRowAsHeader": true,
+                                "quoteChar": "\""
+                            },
+                            "schema": []
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": true,
+                            "treatBooleanAsNumber": false
+                        }
+                    }
+                }
+            },
+            {
+                "name": "update_pipline_config",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Copy data1",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "DataWarehouseSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[updateconfig]",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "pluto_warehouse",
+                            "properties": {
+                                "annotations": [],
+                                "type": "DataWarehouse",
+                                "typeProperties": {
+                                    "endpoint": "ohk6lkhiim6ezfv6gravnt3iq4-ig23trruww5everbdqg5uuuewq.datawarehouse.fabric.microsoft.com",
+                                    "artifactId": "ed9708e6-8b0e-4e85-a9cb-fbaf55a32396"
+                                }
+                            }
+                        },
+                        "type": "DataWarehouseTable",
+                        "schema": []
+                    }
+                }
+            },
+            {
+                "name": "copy_data_failed",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Copy data1",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "COPY_DATA_FAILED",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "update_failed",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "update_pipline_config",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "UPDATE_FAILED",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "copy_data_completed",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Copy data1",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "COPY_DATA_COMPLETED",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "update_completed",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "update_pipline_config",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "UPDATE_COMPLETED",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "config_db": {
+                "type": "string"
+            },
+            "input_json": {
+                "type": "object"
+            }
+        },
+        "annotations": [],
+        "lastModifiedByObjectId": "f5ae6ea8-d867-4949-bdc1-e8a981b15f28",
+        "lastPublishTime": "2024-03-08T09:16:04Z"
+    }
+}

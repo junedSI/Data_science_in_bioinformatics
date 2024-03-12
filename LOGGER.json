@@ -1,0 +1,122 @@
+{
+    "name": "pluto_logger_pipline",
+    "objectId": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+    "properties": {
+        "activities": [
+            {
+                "name": "Switch1",
+                "type": "Switch",
+                "dependsOn": [],
+                "typeProperties": {
+                    "on": {
+                        "value": "@pipeline().parameters.config_db",
+                        "type": "Expression"
+                    },
+                    "cases": [
+                        {
+                            "value": "SQL",
+                            "activities": [
+                                {
+                                    "name": "Lookup1",
+                                    "type": "Lookup",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "SqlServerSource",
+                                            "sqlReaderQuery": {
+                                                "value": "@concat('INSERT INTO logs (log_source_name, parent_guid, [type], log_info_josn, env_info_json, input_info_json, output_info_json, created_ts, created_ts_utc, is_active) \nVALUES (''',pipeline().parameters.run_name,''',''',pipeline().parameters.parent_runid,''',''',pipeline().parameters.run_type,''','''',''',pipeline().parameters.env_info,''','''','''',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1); SELECT 1;')",
+                                                "type": "Expression"
+                                            },
+                                            "queryTimeout": "02:00:00",
+                                            "partitionOption": "None"
+                                        },
+                                        "datasetSettings": {
+                                            "annotations": [],
+                                            "type": "SqlServerTable",
+                                            "schema": [],
+                                            "externalReferences": {
+                                                "connection": "be488e90-fa9e-4193-a044-6d6de3cb8285"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "defaultActivities": [
+                        {
+                            "name": "KQLScript1",
+                            "type": "KustoQueryLanguage",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "typeProperties": {
+                                "command": {
+                                    "value": "@concat('.set-or-append logger <| union (print run_id=guid(',pipeline().parameters.runid,'),run_name = \"',pipeline().parameters.run_name,'\",parent_run_id = guid(',pipeline().parameters.parent_runid,') ,type = \"',pipeline().parameters.run_type,'\" ,env_info = \"',pipeline().parameters.env_info,'\" ,input_info = dynamic({\"Array\":[{\"key\":\"value\"},{\"key1\":\"value1\"}]}), output_info = dynamic({\"Array\":[{\"key\":\"value\"},{\"key1\":\"value1\"}]}),created_ts = now(), created_ts_utc = now() )')",
+                                    "type": "Expression"
+                                },
+                                "commandTimeout": "00:20:00"
+                            },
+                            "linkedService": {
+                                "name": "plutologger",
+                                "objectId": "aa7c0bfe-ffe5-4d65-9fa2-0e1fdb0fe4f8",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "KustoDatabase",
+                                    "typeProperties": {
+                                        "workspaceId": "c6b9b541-b534-4aba-9221-1c0dda5284b4",
+                                        "endpoint": "https://trd-1y1pjmn8z1ge5yzmq4.z4.kusto.fabric.microsoft.com",
+                                        "database": "aa7c0bfe-ffe5-4d65-9fa2-0e1fdb0fe4f8"
+                                    },
+                                    "tridentArtifactType": "KustoDatabase"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "config_db": {
+                "type": "string",
+                "defaultValue": "SQL"
+            },
+            "runid": {
+                "type": "string"
+            },
+            "run_name": {
+                "type": "string"
+            },
+            "parent_runid": {
+                "type": "string"
+            },
+            "env_info": {
+                "type": "string"
+            },
+            "input_info": {
+                "type": "string"
+            },
+            "output_info": {
+                "type": "string"
+            },
+            "run_type": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "lastModifiedByObjectId": "f5ae6ea8-d867-4949-bdc1-e8a981b15f28",
+        "lastPublishTime": "2023-11-29T05:09:09Z"
+    }
+}

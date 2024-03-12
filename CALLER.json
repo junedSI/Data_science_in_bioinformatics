@@ -1,0 +1,338 @@
+{
+    "name": "caller_mysql_lakehouse",
+    "objectId": "ed73380f-1707-424e-a917-ef7dee8b8e99",
+    "properties": {
+        "activities": [
+            {
+                "name": "start_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "CALLER_START_LOG",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "get_config",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "start_log",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "DataWarehouseSource",
+                        "sqlReaderQuery": {
+                            "value": "@concat('SELECT * FROM [dbo].[data_pipes_runtime_config] WHERE template_guid =''',pipeline().parameters.template_guid,''';')",
+                            "type": "Expression"
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "pluto_warehouse",
+                            "properties": {
+                                "annotations": [],
+                                "type": "DataWarehouse",
+                                "typeProperties": {
+                                    "endpoint": "ohk6lkhiim6ezfv6gravnt3iq4-ig23trruww5everbdqg5uuuewq.datawarehouse.fabric.microsoft.com",
+                                    "artifactId": "ed9708e6-8b0e-4e85-a9cb-fbaf55a32396"
+                                }
+                            }
+                        },
+                        "type": "DataWarehouseTable",
+                        "schema": []
+                    }
+                }
+            },
+            {
+                "name": "ForEach1",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "get_config",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('get_config').output",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Invoke pipeline1",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "97b508b9-04a1-4581-b799-ffcfdde35585",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "config_failed_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "get_config",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "CONFIG_FAILED_LOG",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "config_completed_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "get_config",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "CONFIG_COMPLETED",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "caller_failed_log",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "ForEach1",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "CALLER_FAILED_LOG",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "caller_failed_log_copy1",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "ForEach1",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "041d9610-6af4-4ec4-81bc-95dd605d3d7b",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "config_db": {
+                            "value": "@pipeline().parameters.config_db",
+                            "type": "Expression"
+                        },
+                        "runid": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                        },
+                        "run_name": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                        },
+                        "parent_runid": {
+                            "value": "@pipeline().GroupId",
+                            "type": "Expression"
+                        },
+                        "env_info": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                        },
+                        "output_info": "CALLER_COMPLETED",
+                        "run_type": {
+                            "value": "@pipeline().TriggerType",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "config_db": {
+                "type": "string"
+            },
+            "template_guid": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "lastModifiedByObjectId": "f5ae6ea8-d867-4949-bdc1-e8a981b15f28",
+        "lastPublishTime": "2023-11-29T05:25:17Z"
+    }
+}
